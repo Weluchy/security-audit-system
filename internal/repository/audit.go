@@ -1,38 +1,41 @@
 package repository
 
 import (
-	"database/sql"
 	"security-audit-system/internal/model"
+
+	"gorm.io/gorm"
 )
 
 type AuditRepo struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func NewAuditRepo(db *sql.DB) *AuditRepo {
+func NewAuditRepo(db *gorm.DB) *AuditRepo {
 	return &AuditRepo{db: db}
 }
 
 func (rep *AuditRepo) Save(req model.AuditRequest) error {
-	if _, err := rep.db.Exec(`insert into events (user_id, action) values ($1, $2)`, req.Action, req.Action); err != nil {
+	event := model.Event{
+		UserID: req.UserID,
+		Action: req.Action,
+	}
+	if err := rep.db.Create(&event).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (req *AuditRepo) GetAll() ([]model.AuditRequest, error) {
-	var resp model.AuditRequest
+func (rep *AuditRepo) GetAll() ([]model.AuditRequest, error) {
+	var events []model.Event
 	var result []model.AuditRequest
-	rows, err := req.db.Query(`select user_id, action from events`)
-	if err != nil {
+	if err := rep.db.Find(&events).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		if err := rows.Scan(&resp.UserID, &resp.Action); err != nil {
-			return nil, err
-		}
-		result = append(result, resp)
+	for _, event := range events {
+		result = append(result, model.AuditRequest{
+			UserID: event.UserID,
+			Action: event.Action,
+		})
 	}
 	return result, nil
 }
