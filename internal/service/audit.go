@@ -1,20 +1,43 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"security-audit-system/internal/model"
 	"security-audit-system/internal/repository"
+
+	"github.com/segmentio/kafka-go"
 )
 
 type AuditService struct {
-	repo *repository.AuditRepo
+	repo        *repository.AuditRepo
+	kafkaWriter *kafka.Writer
 }
 
-func NewAuditService(repo *repository.AuditRepo) *AuditService {
-	return &AuditService{repo: repo}
+func NewAuditService(repo *repository.AuditRepo, kafkaWriter *kafka.Writer) *AuditService {
+	return &AuditService{repo: repo, kafkaWriter: kafkaWriter}
 }
 
 func (s *AuditService) CreateEvent(req model.AuditRequest) error {
-	return s.repo.Save(req)
+
+	bytes, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	msg := kafka.Message{
+		Key:   []byte(fmt.Sprintf("user-%d", req.UserID)),
+		Value: bytes,
+	}
+
+	err = s.kafkaWriter.WriteMessages(context.Background(), msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (s *AuditService) GetEvents() ([]model.AuditRequest, error) {

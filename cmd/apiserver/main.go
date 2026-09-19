@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -31,8 +32,15 @@ func main() {
 		panic(err)
 	}
 
+	kafkaWriter := &kafka.Writer{
+		Addr:     kafka.TCP("localhost:9092"),
+		Topic:    "audit_events",
+		Balancer: &kafka.LeastBytes{},
+	}
+	defer kafkaWriter.Close()
+
 	repo := repository.NewAuditRepo(db, rdb)
-	service := service.NewAuditService(repo)
+	service := service.NewAuditService(repo, kafkaWriter)
 	handler := handler.NewAuditHandler(service)
 
 	router := gin.Default()
