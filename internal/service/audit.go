@@ -20,3 +20,9 @@ func (s *AuditService) CreateEvent(req model.AuditRequest) error {
 func (s *AuditService) GetEvents() ([]model.AuditRequest, error) {
 	return s.repo.GetAll()
 }
+func (s *AuditService) GetEventByID(id int) (model.AuditRequest, error) {
+	return s.repo.GetByID(id)
+}
+func (s *AuditService) GetActionCountPerUser() (map[int]int, error) {
+	return s.repo.GetActionCountPerUser()
+}

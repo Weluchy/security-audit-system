@@ -1,12 +1,12 @@
 package main
 
 import (
-	"net/http"
 	"security-audit-system/internal/handler"
 	"security-audit-system/internal/model"
 	"security-audit-system/internal/repository"
 	"security-audit-system/internal/service"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -20,10 +20,15 @@ func main() {
 	if err := db.AutoMigrate(&model.Event{}); err != nil {
 		panic(err)
 	}
+
 	repo := repository.NewAuditRepo(db)
 	service := service.NewAuditService(repo)
 	handler := handler.NewAuditHandler(service)
 
-	http.HandleFunc("/audit", handler.HandleAudit)
-	http.ListenAndServe(":8080", nil)
+	router := gin.Default()
+	router.GET("/audit", handler.GetAll)
+	router.GET("/audit/:id", handler.GetByID)
+	router.POST("/audit", handler.Create)
+	router.GET("/audit/count", handler.GetStats)
+	router.Run(":8080")
 }

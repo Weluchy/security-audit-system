@@ -39,3 +39,32 @@ func (rep *AuditRepo) GetAll() ([]model.AuditRequest, error) {
 	}
 	return result, nil
 }
+
+func (rep *AuditRepo) GetByID(id int) (model.AuditRequest, error) {
+	var event model.Event
+	if err := rep.db.First(&event, id).Error; err != nil {
+		return model.AuditRequest{}, err
+	}
+	return model.AuditRequest{
+		UserID: event.UserID,
+		Action: event.Action,
+	}, nil
+}
+
+func (rep *AuditRepo) GetActionCountPerUser() (map[int]int, error) {
+	type Result struct {
+		UserID int
+		Count  int
+	}
+	var resultsQuery []Result
+
+	if err := rep.db.Raw("select user_id, count(*) as count from events group by user_id").Scan(&resultsQuery).Error; err != nil {
+		return nil, err
+	}
+
+	results := make(map[int]int)
+	for _, v := range resultsQuery {
+		results[v.UserID] = v.Count
+	}
+	return results, nil
+}
