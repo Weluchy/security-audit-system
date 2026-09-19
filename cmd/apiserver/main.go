@@ -7,12 +7,13 @@ import (
 	"security-audit-system/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func main() {
-	dsn := "host=localhost port=5432 user=myuser password=mypassword dbname=audit_logs sslmode=disable"
+	dsn := "host=localhost port=5433 user=myuser password=mypassword dbname=audit_logs sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn))
 	if err != nil {
 		panic(err)
@@ -21,7 +22,16 @@ func main() {
 		panic(err)
 	}
 
-	repo := repository.NewAuditRepo(db)
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6380",
+		Password: "",
+		DB:       0,
+	})
+	if err := rdb.Ping().Err(); err != nil {
+		panic(err)
+	}
+
+	repo := repository.NewAuditRepo(db, rdb)
 	service := service.NewAuditService(repo)
 	handler := handler.NewAuditHandler(service)
 

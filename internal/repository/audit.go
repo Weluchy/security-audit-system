@@ -1,17 +1,22 @@
 package repository
 
 import (
+	"encoding/json"
+	"fmt"
 	"security-audit-system/internal/model"
+	"time"
 
+	"github.com/go-redis/redis"
 	"gorm.io/gorm"
 )
 
 type AuditRepo struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis *redis.Client
 }
 
-func NewAuditRepo(db *gorm.DB) *AuditRepo {
-	return &AuditRepo{db: db}
+func NewAuditRepo(db *gorm.DB, redis *redis.Client) *AuditRepo {
+	return &AuditRepo{db: db, redis: redis}
 }
 
 func (rep *AuditRepo) Save(req model.AuditRequest) error {
@@ -42,13 +47,39 @@ func (rep *AuditRepo) GetAll() ([]model.AuditRequest, error) {
 
 func (rep *AuditRepo) GetByID(id int) (model.AuditRequest, error) {
 	var event model.Event
-	if err := rep.db.First(&event, id).Error; err != nil {
-		return model.AuditRequest{}, err
+
+	key := fmt.Sprintf("event:%v", id)
+	val, err := rep.redis.Get(key).Result()
+	if err == nil {
+		err = json.Unmarshal([]byte(val), &event)
+
+		if err != nil {
+			return model.AuditRequest{}, err
+		}
+
+		return model.AuditRequest{
+			UserID: event.UserID,
+			Action: event.Action,
+		}, nil
+
+	} else if err == redis.Nil {
+		if err := rep.db.First(&event, id).Error; err != nil {
+			return model.AuditRequest{}, err
+		}
+		bytes, err := json.Marshal(&event)
+		if err != nil {
+			return model.AuditRequest{}, err
+		}
+
+		rep.redis.Set(key, bytes, 5*time.Minute)
+
+		return model.AuditRequest{
+			UserID: event.UserID,
+			Action: event.Action,
+		}, nil
 	}
-	return model.AuditRequest{
-		UserID: event.UserID,
-		Action: event.Action,
-	}, nil
+
+	return model.AuditRequest{}, err
 }
 
 func (rep *AuditRepo) GetActionCountPerUser() (map[int]int, error) {
