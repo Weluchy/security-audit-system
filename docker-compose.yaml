@@ -38,6 +38,17 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: audit-api
+    depends_on:
+      - db
+      - redis
+      - kafka
+
+
 
   nginx:
     image: nginx:alpine
@@ -46,3 +57,5 @@ services:
       - "80:80" 
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api 

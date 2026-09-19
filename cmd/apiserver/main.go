@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	dsn := "host=localhost port=5433 user=myuser password=mypassword dbname=audit_logs sslmode=disable"
+	dsn := "host=localhost port=5432 user=myuser password=mypassword dbname=audit_logs sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn))
 	if err != nil {
 		panic(err)
@@ -24,7 +24,7 @@ func main() {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6380",
+		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
