@@ -37,3 +37,12 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+  nginx:
+    image: nginx:alpine
+    container_name: audit-nginx
+    ports:
+      - "80:80" 
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro

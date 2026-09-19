@@ -5,17 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"security-audit-system/internal/model"
-	"security-audit-system/internal/repository"
 
 	"github.com/segmentio/kafka-go"
 )
 
+type AuditRepository interface {
+	GetByID(id int) (model.AuditRequest, error)
+	GetAll() ([]model.AuditRequest, error)
+	GetActionCountPerUser() (map[int]int, error)
+}
 type AuditService struct {
-	repo        *repository.AuditRepo
+	repo        AuditRepository
 	kafkaWriter *kafka.Writer
 }
 
-func NewAuditService(repo *repository.AuditRepo, kafkaWriter *kafka.Writer) *AuditService {
+func NewAuditService(repo AuditRepository, kafkaWriter *kafka.Writer) *AuditService {
 	return &AuditService{repo: repo, kafkaWriter: kafkaWriter}
 }
 
